@@ -10,52 +10,107 @@
             width: 100vw;
             height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-family: Arial, sans-serif;
             color: white;
-            text-align: center;
             overflow: hidden;
         }
 
+        #container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro con opacidad */
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         #city {
-            font-size: 2em;
+            font-size: 4em;
             font-weight: bold;
-            margin-bottom: 20px;
         }
 
         #time {
-            font-size: 4em;
+            font-size: 2em;
             font-weight: bold;
-            margin-bottom: 10px;
         }
 
         #date {
             font-size: 1.5em;
-            font-weight: normal;
         }
 
-        #weather {
-            position: absolute;
-            bottom: 50px;
-            font-size: 1.5em;
+        /* Para cambiar el tamaño de la fuente, puedes actualizar estas variables */
+        :root {
+            --font-city-size: 2em;
+            --font-time-size: 4em;
+            --font-date-size: 1.5em;
+        }
+
+        #city {
+            font-size: var(--font-city-size);
+        }
+
+        #time {
+            font-size: var(--font-time-size);
+        }
+
+        #date {
+            font-size: var(--font-date-size);
         }
     </style>
 </head>
 <body>
-    <div id="city">ALBACETE</div>
-    <div id="time">Cargando hora...</div>
-    <div id="date">Cargando fecha...</div>
-    
-    <!-- Widget de clima -->
-    <div id="weather">
-        <div id="ww_244435da3e96b" v='1.3' loc='id' a='{"t":"responsive","lang":"es","sl_lpl":1,"ids":["wl6543"],"font":"Arial","sl_ics":"one_a","sl_sot":"celsius","cl_bkg":"image","cl_font":"#FFFFFF","cl_cloud":"#FFFFFF","cl_persp":"rgba(88,217,246,1)","cl_sun":"#FFC107","cl_moon":"#FFC107","cl_thund":"#FF5722","sl_tof":"5","cl_odd":"#0000000a"}'>
-            Más previsiones: 
-            <a href="https://oneweather.org/es/madrid/25_days/" id="ww_244435da3e96b_u" target="_blank">El tiempo para 25 días</a>
-        </div>
-        <script async src="https://app3.weatherwidget.org/js/?id=ww_244435da3e96b"></script>
+    <div id="container">
+        <div id="city">ALBACETE</div>
+        <div id="time">Cargando hora...</div>
+        <div id="date">Cargando fecha...</div>
     </div>
+
+    <!-- Widget de clima -->
+  <script>
+        (function(d, s, id) {
+            if (d.getElementById(id)) {
+                if (window.__TOMORROW__) {
+                    window.__TOMORROW__.renderWidget();
+                }
+                return;
+            }
+            const fjs = d.getElementsByTagName(s)[0];
+            const js = d.createElement(s);
+            js.id = id;
+            js.src = "https://www.tomorrow.io/v1/widget/sdk/sdk.bundle.min.js";
+
+            fjs.parentNode.insertBefore(js, fjs);
+        })(document, 'script', 'tomorrow-sdk');
+        </script>
+
+        <div class="tomorrow"
+           data-location-id="032013"
+           data-language="EN"
+           data-unit-system="METRIC"
+           data-skin="light"
+           data-widget-type="upcoming"
+           style="padding-bottom:22px;position:relative;"
+        >
+          <a
+            href="https://www.tomorrow.io/weather-api/"
+            rel="nofollow noopener noreferrer"
+            target="_blank"
+            style="position: absolute; bottom: 0; transform: translateX(-50%); left: 50%;"
+          >
+            <img
+              alt="Powered by the Tomorrow.io Weather API"
+              src="https://weather-website-client.tomorrow.io/img/powered-by.svg"
+              width="250"
+              height="18"
+            />
+          </a>
+        </div>
 
     <script>
         function updateTime() {
@@ -67,19 +122,7 @@
             const seconds = now.getSeconds();
             const timeString = (hours < 10 ? '0' + hours : hours) + ':' + (minutes < 10 ? '0' + minutes : minutes) + ':' + (seconds < 10 ? '0' + seconds : seconds);
             
-            // Obtener la fecha en formato dd/mm/aaaa
+            // Obtener la fecha en formato dd/mm/aa
             const day = ('0' + now.getDate()).slice(-2);  // Añade un 0 si el día es menor que 10
             const month = ('0' + (now.getMonth() + 1)).slice(-2);  // El mes comienza desde 0
-            const year = now.getFullYear().toString().slice(-0);  // Solo los dos últimos dígitos del año
-            const dateString = `${day}/${month}/${year}`;
-            
-            // Actualizar el contenido en los divs
-            document.getElementById('time').innerText = timeString;
-            document.getElementById('date').innerText = dateString;
-        }
-
-        updateTime();
-        setInterval(updateTime, 1000); // Actualiza la hora cada segundo
-    </script>
-</body>
-</html>
+            const year = now.getFullYear().toString().slice(-2);  // Solo los dos últimos dígitos del
