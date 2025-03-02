@@ -48,48 +48,20 @@
             font-size: 1.5em;
         }
 
-        /* Para cambiar el tamaño de la fuente, puedes actualizar estas variables */
-        :root {
-            --font-city-size: 2em;
-            --font-time-size: 3em;
-            --font-date-size: 1.5em;
-        }
-
-        #city {
-            font-size: var(--font-city-size);
-        }
-
-        #time {
-            font-size: var(--font-time-size);
-        }
-
-        #date {
-            font-size: var(--font-date-size);
-        }
-
-        /* Estilo para el widget de noticias, centrado en el centro de la pantalla */
-        #news-widget {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro con opacidad */
-            padding: 20px;
-            border-radius: 10px;
-            width: 80%;
-            max-width: 600px;
-            text-align: center;
-            z-index: 2;
-        }
-
         /* Estilo para el widget del clima en la parte inferior */
         #weather-widget {
-            position: fixed; /* Cambié a "fixed" para que esté siempre visible */
-            right: 20px;  /* Desplazado a la derecha */
-            bottom: 100px; /* Controla el desplazamiento desde la parte inferior */
+            position: absolute; /* Cambié a "absolute" para que se mueva libremente */
+            right: 20px;
+            bottom: 20px; /* Puedes cambiar este valor para mover el widget más abajo */
             z-index: 0;
         }
 
+        /* Aquí también puedes probar con el margen superior */
+        #ww_24eb73bc5a3a {
+            position: absolute;
+            bottom: 20px;
+            z-index: 0;
+        }
     </style>
 </head>
 <body>
@@ -99,14 +71,7 @@
         <div id="date">Cargando fecha...</div>
     </div>
 
-    <!-- Widget de noticias centrado -->
-    <div id="news-widget">
-        <!-- start feedwind code -->
-        <script type="text/javascript" src="https://feed.mikle.com/js/fw-loader.js" preloader-text="Loading" data-fw-param="171606/"></script>
-        <!-- end feedwind code -->
-    </div>
-
-    <!-- Widget del clima en la parte inferior derecha -->
+    <!-- Widget del clima -->
     <div id="ww_24eb73bc5a3a" v='1.3' loc='id' a='{"t":"responsive","lang":"es","sl_lpl":1,"ids":["wl6543"],"font":"Arial","sl_ics":"one_a","sl_sot":"celsius","cl_bkg":"image","cl_font":"#FFFFFF","cl_cloud":"#FFFFFF","cl_persp":"#81D4FA","cl_sun":"#FFC107","cl_moon":"#FFC107","cl_thund":"#FF5722","sl_tof":"5"}'>Más previsiones: <a href="https://oneweather.org/es/madrid/25_days/" id="ww_24eb73bc5a3a_u" target="_blank">El tiempo para 25 días</a></div>
     <script async src="https://app3.weatherwidget.org/js/?id=ww_24eb73bc5a3a"></script>
 
