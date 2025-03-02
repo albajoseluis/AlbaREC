@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clima y Hora en Albacete</title>
+    <style>
+        body {
+            background-color: #00FF00; /* Verde Chroma */
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            color: white;
+            text-align: center;
+            overflow: hidden;
+        }
+        #date-time {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        #weather {
+            position: absolute;
+            bottom: 50px;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <div id="date-time">Cargando fecha y hora...</div>
+    <div id="weather">Cargando clima...</div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('date-time').innerText = now.toLocaleDateString('es-ES', options);
+        }
+
+        async function getWeather() {
+            try {
+                const apiKey = "TU_WEATHERAPI_KEY"; // Reemplázalo con tu API Key de WeatherAPI
+                const response = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=Albacete&days=5&lang=es`);
+                const data = await response.json();
+
+                if (data.location) {
+                    let forecastHTML = "<h3>⛅ Pronóstico semanal en Albacete</h3>";
+                    data.forecast.forecastday.forEach(day => {
+                        const date = new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long' });
+                        forecastHTML += `<p>${date}: ${day.day.condition.text}, ${day.day.avgtemp_c}°C 🌡</p>`;
+                    });
+                    document.getElementById('weather').innerHTML = forecastHTML;
+                } else {
+                    document.getElementById('weather').innerText = "⚠ Error al obtener el clima.";
+                }
+            } catch (error) {
+                document.getElementById('weather').innerText = "❌ No se pudo conectar con el servicio de clima.";
+            }
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000); // Actualiza cada segundo
+        getWeather();
+    </script>
+</body>
+</html>
