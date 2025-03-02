@@ -10,20 +10,27 @@
             width: 100vw;
             height: 100vh;
             display: flex;
-            flex-direction: column; /* Ahora la dirección es vertical */
+            flex-direction: column; /* Disposición vertical */
             font-family: Arial, sans-serif;
             color: white;
             overflow: hidden;
             margin: 0;
         }
 
-        /* Parte superior */
+        /* Parte superior: Contenedor para "ALBACETE", hora y fecha */
         #top-section {
             display: flex;
-            flex-direction: column;
-            align-items: flex-end; /* Alinea los elementos a la derecha */
+            justify-content: space-between;
+            align-items: center;
             padding: 20px;
             background-color: rgba(0, 0, 0, 0.6);
+            width: 100%;
+        }
+
+        #left-side {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
 
         #city {
@@ -40,24 +47,22 @@
             font-size: 1.5em;
         }
 
-        /* Para el widget de noticias en el centro */
+        /* Widget de noticias centrado */
         #news-widget {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            flex: 1; /* Esto permite que el widget ocupe el espacio restante */
+            display: flex;
+            justify-content: center;
+            align-items: center;
             background-color: rgba(0, 0, 0, 0.6);
             padding: 20px;
             border-radius: 10px;
-            width: 80%;
             max-width: 600px;
             text-align: center;
-            z-index: 2;
         }
 
         /* Parte inferior: Widget del clima */
         #bottom-section {
-            position: absolute;
+            position: fixed;
             bottom: 10px;
             right: 20px;
             z-index: 0;
@@ -73,21 +78,24 @@
     </style>
 </head>
 <body>
-    <!-- Parte superior -->
+    <!-- Parte superior: Contenedor con "ALBACETE", hora y fecha, y el widget de noticias -->
     <div id="top-section">
-        <div id="city">ALBACETE</div>
-        <div id="time">Cargando hora...</div>
-        <div id="date">Cargando fecha...</div>
+        <!-- Lado izquierdo: "ALBACETE", hora y fecha -->
+        <div id="left-side">
+            <div id="city">ALBACETE</div>
+            <div id="time">Cargando hora...</div>
+            <div id="date">Cargando fecha...</div>
+        </div>
+
+        <!-- Lado derecho: Widget de noticias centrado -->
+        <div id="news-widget">
+            <!-- start feedwind code -->
+            <script type="text/javascript" src="https://feed.mikle.com/js/fw-loader.js" preloader-text="Loading" data-fw-param="171606/"></script>
+            <!-- end feedwind code -->
+        </div>
     </div>
 
-    <!-- Widget de noticias centrado -->
-    <div id="news-widget">
-        <!-- start feedwind code -->
-        <script type="text/javascript" src="https://feed.mikle.com/js/fw-loader.js" preloader-text="Loading" data-fw-param="171606/"></script>
-        <!-- end feedwind code -->
-    </div>
-
-    <!-- Parte inferior -->
+    <!-- Parte inferior: Widget del clima -->
     <div id="bottom-section">
         <div id="ww_24eb73bc5a3a" v='1.3' loc='id' a='{"t":"responsive","lang":"es","sl_lpl":1,"ids":["wl6543"],"font":"Arial","sl_ics":"one_a","sl_sot":"celsius","cl_bkg":"image","cl_font":"#FFFFFF","cl_cloud":"#FFFFFF","cl_persp":"#81D4FA","cl_sun":"#FFC107","cl_moon":"#FFC107","cl_thund":"#FF5722","sl_tof":"5"}'>Más previsiones: <a href="https://oneweather.org/es/madrid/25_days/" id="ww_24eb73bc5a3a_u" target="_blank">El tiempo para 25 días</a></div>
         <script async src="https://app3.weatherwidget.org/js/?id=ww_24eb73bc5a3a"></script>
