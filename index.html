@@ -31,12 +31,12 @@
         }
 
         #city {
-            font-size: 4em;
+            font-size: 2em;
             font-weight: bold;
         }
 
         #time {
-            font-size: 2em;
+            font-size: 4em;
             font-weight: bold;
         }
 
@@ -72,45 +72,13 @@
     </div>
 
     <!-- Widget de clima -->
- <script>
-        (function(d, s, id) {
-            if (d.getElementById(id)) {
-                if (window.__TOMORROW__) {
-                    window.__TOMORROW__.renderWidget();
-                }
-                return;
-            }
-            const fjs = d.getElementsByTagName(s)[0];
-            const js = d.createElement(s);
-            js.id = id;
-            js.src = "https://www.tomorrow.io/v1/widget/sdk/sdk.bundle.min.js";
-
-            fjs.parentNode.insertBefore(js, fjs);
-        })(document, 'script', 'tomorrow-sdk');
-        </script>
-
-        <div class="tomorrow"
-           data-location-id="032013"
-           data-language="ES"
-           data-unit-system="METRIC"
-           data-skin="light"
-           data-widget-type="upcoming"
-           style="padding-bottom:22px;position:relative;"
-        >
-          <a
-            href="https://www.tomorrow.io/weather-api/"
-            rel="nofollow noopener noreferrer"
-            target="_blank"
-            style="position: absolute; bottom: 0; transform: translateX(-50%); left: 50%;"
-          >
-            <img
-              alt="Powered by the Tomorrow.io Weather API"
-              src="https://weather-website-client.tomorrow.io/img/powered-by.svg"
-              width="18"
-              height="250"
-            />
-          </a>
+    <div id="weather">
+        <div id="ww_244435da3e96b" v='1.3' loc='id' a='{"t":"responsive","lang":"es","sl_lpl":1,"ids":["wl6543"],"font":"Arial","sl_ics":"one_a","sl_sot":"celsius","cl_bkg":"image","cl_font":"#FFFFFF","cl_cloud":"#FFFFFF","cl_persp":"rgba(88,217,246,1)","cl_sun":"#FFC107","cl_moon":"#FFC107","cl_thund":"#FF5722","sl_tof":"5","cl_odd":"#0000000a"}'>
+            Más previsiones: 
+            <a href="https://oneweather.org/es/madrid/25_days/" id="ww_244435da3e96b_u" target="_blank">El tiempo para 25 días</a>
         </div>
+        <script async src="https://app3.weatherwidget.org/js/?id=ww_244435da3e96b"></script>
+    </div>
 
     <script>
         function updateTime() {
@@ -122,7 +90,19 @@
             const seconds = now.getSeconds();
             const timeString = (hours < 10 ? '0' + hours : hours) + ':' + (minutes < 10 ? '0' + minutes : minutes) + ':' + (seconds < 10 ? '0' + seconds : seconds);
             
-            // Obtener la fecha en formato dd/mm/aa
+            // Obtener la fecha en formato dd/mm/aaaa
             const day = ('0' + now.getDate()).slice(-2);  // Añade un 0 si el día es menor que 10
             const month = ('0' + (now.getMonth() + 1)).slice(-2);  // El mes comienza desde 0
-            const year = now.getFullYear().toString().slice(-2);  // Solo los dos últimos dígitos del
+            const year = now.getFullYear();  // Año con 4 dígitos
+            const dateString = `${day}/${month}/${year}`;
+            
+            // Actualizar el contenido en los divs
+            document.getElementById('time').innerText = timeString;
+            document.getElementById('date').innerText = dateString;
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000); // Actualiza la hora cada segundo
+    </script>
+</body>
+</html>
