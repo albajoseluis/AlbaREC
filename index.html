@@ -63,6 +63,54 @@
         }
 
         #date {
-            font-size
+            font-size: var(--font-date-size);
+        }
 
+        /* Estilo del widget del tiempo */
+        #weather-widget {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="city">ALBACETE</div>
+        <div id="time">Cargando hora...</div>
+        <div id="date">Cargando fecha...</div>
+    </div>
+
+    <!-- Widget del clima -->
+    <div id="weather-widget">
+        <div id="c_620450c43fb6364527d82aebe1e75557" class="delgado"></div>
+        <script type="text/javascript" src="https://www.eltiempo.es/widget/widget_loader/620450c43fb6364527d82aebe1e75557"></script>
+    </div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
             
+            // Obtener la hora actual en formato de 24 horas
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const timeString = (hours < 10 ? '0' + hours : hours) + ':' + (minutes < 10 ? '0' + minutes : minutes) + ':' + (seconds < 10 ? '0' + seconds : seconds);
+            
+            // Obtener la fecha en formato dd/mm/aaaa
+            const day = ('0' + now.getDate()).slice(-2);  // Añade un 0 si el día es menor que 10
+            const month = ('0' + (now.getMonth() + 1)).slice(-2);  // El mes comienza desde 0
+            const year = now.getFullYear();  // Año con 4 dígitos
+            const dateString = `${day}/${month}/${year}`;
+            
+            // Actualizar el contenido en los divs
+            document.getElementById('time').innerText = timeString;
+            document.getElementById('date').innerText = dateString;
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000); // Actualiza la hora cada segundo
+    </script>
+</body>
+</html>
