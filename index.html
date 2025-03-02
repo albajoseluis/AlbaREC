@@ -10,63 +10,128 @@
             width: 100vw;
             height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-family: Arial, sans-serif;
             color: white;
-            text-align: center;
             overflow: hidden;
+            position: relative;
         }
-        #date-time {
+
+        #container {
             position: absolute;
             top: 20px;
             left: 20px;
+            background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro con opacidad */
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        #city {
             font-size: 2em;
             font-weight: bold;
         }
-        #weather {
-            position: absolute;
-            bottom: 50px;
+
+        #time {
+            font-size: 3em; /* Tamaño de la hora ajustado */
+            font-weight: bold;
+        }
+
+        #date {
             font-size: 1.5em;
+        }
+
+        /* Para cambiar el tamaño de la fuente, puedes actualizar estas variables */
+        :root {
+            --font-city-size: 2em;
+            --font-time-size: 3em;
+            --font-date-size: 1.5em;
+        }
+
+        #city {
+            font-size: var(--font-city-size);
+        }
+
+        #time {
+            font-size: var(--font-time-size);
+        }
+
+        #date {
+            font-size: var(--font-date-size);
+        }
+
+        /* Estilo para el widget de noticias, centrado en el centro de la pantalla */
+        #news-widget {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro con opacidad */
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+            z-index: 2;
+        }
+
+        /* Estilo para el widget del clima en la parte inferior */
+        #weather-widget {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 0;
         }
     </style>
 </head>
 <body>
-    <div id="date-time">Cargando fecha y hora...</div>
-    <div id="weather">Cargando clima...</div>
+    <div id="container">
+        <div id="city">ALBACETE</div>
+        <div id="time">Cargando hora...</div>
+        <div id="date">Cargando fecha...</div>
+    </div>
+
+    <!-- Widget de noticias centrado -->
+    <div id="news-widget">
+        <!-- start feedwind code -->
+        <script type="text/javascript" src="https://feed.mikle.com/js/fw-loader.js" preloader-text="Loading" data-fw-param="171606/"></script>
+        <!-- end feedwind code -->
+    </div>
+
+    <!-- Widget del clima en la parte inferior derecha -->
+    <div id="ww_24eb73bc5a3a" v='1.3' loc='id' a='{"t":"responsive","lang":"es","sl_lpl":1,"ids":["wl6543"],"font":"Arial","sl_ics":"one_a","sl_sot":"celsius","cl_bkg":"image","cl_font":"#FFFFFF","cl_cloud":"#FFFFFF","cl_persp":"#81D4FA","cl_sun":"#FFC107","cl_moon":"#FFC107","cl_thund":"#FF5722","sl_tof":"5"}'>Más previsiones: <a href="https://oneweather.org/es/madrid/25_days/" id="ww_24eb73bc5a3a_u" target="_blank">El tiempo para 25 días</a></div>
+    <script async src="https://app3.weatherwidget.org/js/?id=ww_24eb73bc5a3a"></script>
 
     <script>
         function updateTime() {
             const now = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            document.getElementById('date-time').innerText = now.toLocaleDateString('es-ES', options);
-        }
-
-        async function getWeather() {
-            try {
-                const apiKey = "46b864dd4ff442c3a02150604250203"; // Reemplázalo con tu API Key de WeatherAPI
-                const response = await fetch(https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=Albacete&days=5&lang=es);
-                const data = await response.json();
-
-                if (data.location) {
-                    let forecastHTML = "<h3>⛅ Pronóstico semanal en Albacete</h3>";
-                    data.forecast.forecastday.forEach(day => {
-                        const date = new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long' });
-                        forecastHTML += <p>${date}: ${day.day.condition.text}, ${day.day.avgtemp_c}°C 🌡</p>;
-                    });
-                    document.getElementById('weather').innerHTML = forecastHTML;
-                } else {
-                    document.getElementById('weather').innerText = "⚠ Error al obtener el clima.";
-                }
-            } catch (error) {
-                document.getElementById('weather').innerText = "❌ No se pudo conectar con el servicio de clima.";
-            }
+            
+            // Obtener la hora actual en formato de 24 horas
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const timeString = (hours < 10 ? '0' + hours : hours) + ':' + (minutes < 10 ? '0' + minutes : minutes) + ':' + (seconds < 10 ? '0' + seconds : seconds);
+            
+            // Obtener la fecha en formato dd/mm/aaaa
+            const day = ('0' + now.getDate()).slice(-2);  // Añade un 0 si el día es menor que 10
+            const month = ('0' + (now.getMonth() + 1)).slice(-2);  // El mes comienza desde 0
+            const year = now.getFullYear();  // Año con 4 dígitos
+            const dateString = `${day}/${month}/${year}`;
+            
+            // Actualizar el contenido en los divs
+            document.getElementById('time').innerText = timeString;
+            document.getElementById('date').innerText = dateString;
         }
 
         updateTime();
-        setInterval(updateTime, 1000); // Actualiza cada segundo
-        getWeather();
+        setInterval(updateTime, 1000); // Actualiza la hora cada segundo
     </script>
 </body>
 </html>
