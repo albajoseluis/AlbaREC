@@ -13,7 +13,7 @@
     <script>
         async function getWeather() {
             try {
-                const apiKey = "76e691ab98fc575fc60d73bec327e5b3"; // Clave OpenWeatherMap
+                const apiKey = "f4cdfa5b44f201b96013d6ed36663041"; // Clave OpenWeatherMap
                 const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Albacete&appid=${apiKey}&units=metric&lang=es`);
                 const data = await response.json();
 
