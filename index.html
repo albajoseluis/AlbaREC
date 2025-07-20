@@ -1,174 +1,40 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AlbaREC</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #00FF00;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .hora-fecha {
-      align-self: flex-start;
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-      box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
-      margin-bottom: 20px;
-    }
-
-    .hora {
-      font-size: 32px;
-      font-weight: bold;
-    }
-
-    .fecha {
-      font-size: 20px;
-      color: #444;
-    }
-
-    .feed-noticias {
-      width: 80%;
-      background: white;
-      padding: 20px;
-      border-radius: 30px;
-      margin-bottom: 20px;
-    }
-
-    .slider {
-      overflow: hidden;
-      height: 60px;
-      position: relative;
-    }
-
-    .slider p {
-      position: absolute;
-      width: 100%;
-      animation: slide 12s linear infinite;
-      font-size: 18px;
-    }
-
-    @keyframes slide {
-      0%   {top: 100%;}
-      10%  {top: 0;}
-      30%  {top: 0;}
-      40%  {top: -100%;}
-      100% {top: -100%;}
-    }
-
-    .tiempo {
-      width: 90%;
-      background: white;
-      padding: 30px;
-      border-radius: 25px;
-      text-align: center;
-    }
-
-    .tiempo ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    .tiempo li {
-      margin: 8px 0;
-    }
-  </style>
+  <title>Mapa del tiempo en Albacete</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style> #map { height: 500px; } </style>
 </head>
 <body>
+  <h2>El tiempo en Albacete</h2>
+  <div id="map"></div>
 
-  <!-- Hora y fecha -->
-  <div class="hora-fecha">
-    <div class="hora" id="hora">--:--:--</div>
-    <div class="fecha" id="fecha">-- de ---- de ----</div>
-  </div>
-
-  <!-- Feed de noticias -->
-  <div class="feed-noticias">
-    <h2>Noticias de Albacete</h2>
-    <div class="slider" id="noticias-slider">
-      <p>Cargando noticias...</p>
-    </div>
-  </div>
-
-  <!-- Tiempo -->
-  <div class="tiempo">
-    <h3>El tiempo en Albacete (próximos días)</h3>
-    <ul id="forecast">
-      <li>Cargando pronóstico...</li>
-    </ul>
-  </div>
-
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Hora y fecha
-    function actualizarReloj() {
-      const ahora = new Date();
-      const hora = ahora.toLocaleTimeString('es-ES', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    const map = L.map('map').setView([38.9943, -1.8585], 10); // Albacete
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const apiKey = 'TU_API_KEY';
+
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=Albacete,ES&appid=${apiKey}&units=metric`)
+      .then(res => res.json())
+      .then(data => {
+        const iconUrl = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+        const popup = `
+          <b>${data.name}</b><br>
+          ${data.weather[0].description}<br>
+          🌡️ ${data.main.temp} °C
+        `;
+        L.marker([38.9943, -1.8585], {
+          icon: L.icon({
+            iconUrl,
+            iconSize: [50, 50]
+          })
+        }).addTo(map).bindPopup(popup).openPopup();
       });
-      const fecha = ahora.toLocaleDateString('es-ES', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      });
-
-      document.getElementById('hora').textContent = hora;
-      document.getElementById('fecha').textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1);
-    }
-    setInterval(actualizarReloj, 1000);
-    actualizarReloj();
-
-    // Noticias simuladas
-    const noticias = [
-      "Abierto el nuevo parque en el centro de Albacete.",
-      "El festival de cine trae 30 películas este año.",
-      "Mejoras en la red de transporte público.",
-      "Alerta amarilla por calor este fin de semana.",
-      "El Albacete Balompié jugará el sábado a las 18h."
-    ];
-    let i = 0;
-
-    function mostrarNoticia() {
-      const slider = document.getElementById("noticias-slider");
-      slider.innerHTML = `<p>${noticias[i]}</p>`;
-      i = (i + 1) % noticias.length;
-    }
-
-    setInterval(mostrarNoticia, 4000);
-    mostrarNoticia();
-
-    // Tiempo con OpenWeatherMap (reemplaza TU_API_KEY)
-    async function cargarPronostico() {
-      try {
-        const res = await fetch("https://api.openweathermap.org/data/2.5/forecast?q=Albacete,ES&units=metric&lang=es&appid=TU_API_KEY");
-        const data = await res.json();
-        const forecastEl = document.getElementById("forecast");
-        forecastEl.innerHTML = "";
-
-        const diasMostrados = new Set();
-
-        data.list.forEach((item) => {
-          const fecha = new Date(item.dt_txt);
-          const dia = fecha.toLocaleDateString('es-ES', { weekday: 'long' });
-
-          if (!diasMostrados.has(dia) && diasMostrados.size < 5 && fecha.getHours() === 12) {
-            diasMostrados.add(dia);
-            const temp = Math.round(item.main.temp);
-            const desc = item.weather[0].description;
-            forecastEl.innerHTML += `<li><strong>${dia}:</strong> ${temp}°C, ${desc}</li>`;
-          }
-        });
-      } catch (error) {
-        document.getElementById("forecast").innerHTML = "<li>Error al cargar el pronóstico.</li>";
-      }
-    }
-
-    cargarPronostico();
   </script>
-
 </body>
 </html>
