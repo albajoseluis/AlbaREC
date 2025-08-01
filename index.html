@@ -87,14 +87,13 @@
                 <p id="current-weather-description" class="text-lg text-gray-600">Cargando...</p>
             </div>
 
-            <!-- Temperatura Mínima y Máxima -->
+            <!-- Temperatura Mínima y Máxima (sin gráfico debajo) -->
             <div class="p-4 bg-white rounded-lg shadow-md flex flex-col items-center justify-center flex-grow">
                 <h2 class="text-xl font-semibold text-gray-700 mb-2">Mín. / Máx. Temp. (Hoy)</h2>
                 <div class="text-lg text-gray-800 mb-2">
                     Mínima: <span id="min-temp" class="font-bold text-green-700">--°C</span><br>
                     Máxima: <span id="max-temp" class="font-bold text-red-700">--°C</span>
                 </div>
-                <canvas id="temperatureChart" class="w-full"></canvas>
             </div>
 
             <!-- Humedad -->
@@ -201,7 +200,6 @@
         const AEMET_FORECAST_URL = `https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/diaria/${ALBACETE_MUNICIPALITY_CODE}?api_key=${AEMET_API_KEY}`;
 
         // Variables para almacenar instancias de gráficos
-        let temperatureChartInstance;
         let humidityChartInstance;
         let windChartInstance;
         let precipitationChartInstance;
@@ -258,68 +256,6 @@
                 // Se pueden añadir más condiciones según sea necesario
             }
             return { icon, description };
-        }
-
-        /**
-         * Dibuja el gráfico de temperatura mínima y máxima.
-         * @param {number} minTemp - Temperatura mínima.
-         * @param {number} maxTemp - Temperatura máxima.
-         */
-        function drawTemperatureChart(minTemp, maxTemp) {
-            const ctx = document.getElementById('temperatureChart').getContext('2d');
-            if (temperatureChartInstance) {
-                temperatureChartInstance.destroy(); // Destruir instancia anterior si existe
-            }
-            temperatureChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Mínima', 'Máxima'],
-                    datasets: [{
-                        label: 'Temperatura (°C)',
-                        data: [minTemp, maxTemp],
-                        backgroundColor: [
-                            'rgba(75, 192, 192, 0.6)', // Verde azulado para mínima
-                            'rgba(255, 99, 132, 0.6)'  // Rojo para máxima
-                        ],
-                        borderColor: [
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(255, 99, 132, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)' // Líneas de la cuadrícula más claras
-                            },
-                            ticks: {
-                                color: '#4A5568' // Color del texto de los ticks
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false // Ocultar líneas de la cuadrícula en el eje X
-                            },
-                            ticks: {
-                                color: '#4A5568'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false // Ocultar leyenda si no es necesaria
-                        },
-                        title: {
-                            display: false
-                        }
-                    }
-                }
-            });
         }
 
         /**
@@ -568,28 +504,28 @@
                     console.log('Última observación de AEMET (detalle):', latestObservation); // Depuración
 
                     // Extraer temperatura
-                    if (latestObservation.temperatura && typeof latestObservation.temperatura.valor !== 'undefined') {
-                        currentTemp = latestObservation.temperatura.valor;
+                    if (typeof latestObservation.ta !== 'undefined') { // Usamos 'ta' para temperatura del aire
+                        currentTemp = latestObservation.ta;
                     } else {
-                        console.warn('Temperatura no encontrada en la última observación de AEMET.');
+                        console.warn('Temperatura (ta) no encontrada en la última observación de AEMET. Intentando con predicción.');
                     }
 
                     // Extraer humedad
-                    if (latestObservation.humedadRelativa && typeof latestObservation.humedadRelativa.valor !== 'undefined') {
-                        humidity = latestObservation.humedadRelativa.valor;
+                    if (typeof latestObservation.hr !== 'undefined') { // Usamos 'hr' para humedad relativa
+                        humidity = latestObservation.hr;
                     } else {
-                        console.warn('Humedad no encontrada en la última observación de AEMET.');
+                        console.warn('Humedad (hr) no encontrada en la última observación de AEMET. Intentando con predicción.');
                     }
 
                     // Extraer velocidad del viento
-                    if (latestObservation.viento && typeof latestObservation.viento.velocidad !== 'undefined') {
-                        windSpeed = latestObservation.viento.velocidad;
+                    if (typeof latestObservation.vv !== 'undefined') { // Usamos 'vv' para velocidad del viento
+                        windSpeed = latestObservation.vv;
                     } else {
-                        console.warn('Velocidad del viento no encontrada en la última observación de AEMET.');
+                        console.warn('Velocidad del viento (vv) no encontrada en la última observación de AEMET. Intentando con predicción.');
                     }
 
                     // Intentar obtener la descripción del cielo de la observación si está disponible
-                    if (latestObservation.estadoCielo && typeof latestObservation.estadoCielo.descripcion !== 'undefined') {
+                    if (typeof latestObservation.estadoCielo !== 'undefined' && typeof latestObservation.estadoCielo.descripcion !== 'undefined') {
                         skyStateDescriptionFromObservation = latestObservation.estadoCielo.descripcion;
                     }
                 } else {
@@ -613,6 +549,29 @@
                     precipitationProb = todayForecast.probPrecipitacion && todayForecast.probPrecipitacion.length > 0 ? todayForecast.probPrecipitacion[0].valor : 'N/A';
                     // Estado del cielo, tomamos la descripción del primer periodo del día
                     skyStateDescriptionFromForecast = todayForecast.estadoCielo && todayForecast.estadoCielo.length > 0 ? todayForecast.estadoCielo[0].descripcion : 'N/A';
+
+                    // Fallback para currentTemp, humidity, windSpeed si no se encontraron en la observación
+                    if (currentTemp === 'N/A' && typeof todayForecast.temperatura?.maxima !== 'undefined' && typeof todayForecast.temperatura?.minima !== 'undefined') {
+                        currentTemp = ((todayForecast.temperatura.maxima + todayForecast.temperatura.minima) / 2).toFixed(1); // Usar promedio de min/max
+                        console.warn('Temperatura actual obtenida del promedio de la predicción diaria.');
+                    }
+                    if (humidity === 'N/A' && todayForecast.humedadRelativa && todayForecast.humedadRelativa.length > 0) {
+                        // AEMET forecast humidity tiene min/max para periodos, tomamos el promedio del primer periodo
+                        const hrPeriod = todayForecast.humedadRelativa[0];
+                        if (typeof hrPeriod.minima !== 'undefined' && typeof hrPeriod.maxima !== 'undefined') {
+                            humidity = ((hrPeriod.minima + hrPeriod.maxima) / 2).toFixed(0);
+                            console.warn('Humedad obtenida del promedio de la predicción diaria.');
+                        }
+                    }
+                    if (windSpeed === 'N/A' && todayForecast.viento && todayForecast.viento.length > 0) {
+                        // AEMET forecast wind tiene velocidad para periodos, tomamos la velocidad del primer periodo
+                        const windPeriod = todayForecast.viento[0];
+                        if (typeof windPeriod.velocidad !== 'undefined') {
+                            windSpeed = windPeriod.velocidad;
+                            console.warn('Velocidad del viento obtenida de la predicción diaria.');
+                        }
+                    }
+
                 } else {
                     console.warn('No se recibieron datos de predicción de AEMET.');
                 }
@@ -634,7 +593,6 @@
                 precipitationElement.textContent = `${precipitationProb}%`;
 
                 // Dibujar gráficos (asegurarse de que los valores sean números para los gráficos)
-                drawTemperatureChart(parseFloat(minTemp) || 0, parseFloat(maxTemp) || 0);
                 drawHumidityChart(parseFloat(humidity) || 0);
                 drawWindChart(parseFloat(windSpeed) || 0);
                 drawPrecipitationChart(parseFloat(precipitationProb) || 0);
