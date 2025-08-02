@@ -36,6 +36,381 @@
         <!-- Contenido de la izquierda (aproximadamente 3/4 del ancho) -->
         <div class="lg:w-3/4 p-8 flex flex-col items-center justify-center text-center">
             <div class="flex-grow flex items-center justify-center">
+                <p class="text-2xl text-gray-500">Bienvenido a la información del clima de Albacete</p>
+            </div>
+        </div>
+
+        <!-- Contenido de la derecha (aproximadamente 1/4 del ancho): Datos consolidados -->
+        <div class="lg:w-1/4 p-6 flex flex-col justify-start bg-gray-50 bg-opacity-90">
+
+            <!-- Cuadro consolidado de información del clima -->
+            <div class="p-4 bg-white rounded-lg shadow-md flex flex-col items-center justify-center h-full">
+
+                <!-- Albacete (Incluye hora actual, temp actual, icono, descripción y min/max temp) -->
+                <div class="text-center w-full mb-4">
+                    <h2 class="text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2">Albacete</h2>
+                    
+                    <!-- Hora actual -->
+                    <p id="current-time" class="text-2xl font-bold text-gray-900 mb-4 animate-pulse">Cargando...</p>
+
+                    <div class="flex items-center justify-center mb-2">
+                        <span id="current-weather-icon" class="text-5xl mr-2">❓</span> <!-- Icono del tiempo -->
+                        <p id="current-temperature-right" class="text-4xl font-bold text-red-500">--°C</p> <!-- Temperatura actual -->
+                    </div>
+                    <p id="current-weather-description" class="text-lg text-gray-600 mb-4"></p> <!-- Descripción del tiempo -->
+
+                    <!-- Mín. / Máx. Temp. -->
+                    <div class="text-lg text-gray-800">
+                        Mínima: <span id="min-temp" class="font-bold text-green-700">--°C</span><br>
+                        Máxima: <span id="max-temp" class="font-bold text-red-700">--°C</span>
+                    </div>
+                </div>
+
+                <!-- Humedad -->
+                <div class="text-center w-full border-t pt-4 border-gray-200 mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Humedad</h2>
+                    <p id="humidity" class="text-3xl font-bold text-blue-700">--%</p>
+                </div>
+
+                <!-- Viento y Racha Máxima -->
+                <div class="text-center w-full border-t pt-4 border-gray-200 mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Viento</h2>
+                    <p id="wind-speed" class="text-3xl font-bold text-purple-700 mb-2">-- km/h</p>
+                    <p class="text-lg text-gray-800">Racha máx: <span id="gust-speed" class="font-bold text-purple-700">-- km/h</span></p>
+                </div>
+
+                <!-- Precipitación -->
+                <div class="text-center w-full border-t pt-4 border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Precipitación</h2>
+                    <p id="precipitation" class="text-3xl font-bold text-teal-700">-- mm</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spinner de carga y mensaje de error (fuera del contenedor principal para que siempre sean visibles) -->
+    <div id="loading-spinner" class="loading-spinner fixed bottom-8 right-8"></div>
+    <p id="error-message" class="text-red-600 fixed bottom-4 left-1/2 -translate-x-1/2 bg-white p-2 rounded-lg shadow-lg hidden">Error al cargar los datos del clima. Por favor, verifica tu clave API de AEMET y la conexión a internet.</p>
+
+    <script>
+        // Funciones auxiliares para audio PCM (no directamente relacionadas con el clima)
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcmData, sampleRate) {
+            const numChannels = 1; // Mono
+            const bytesPerSample = 2; // 16-bit PCM
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+
+            const wavHeader = new ArrayBuffer(44);
+            const view = new DataView(wavHeader);
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcmData.byteLength, true);
+            writeString(view, 8, 'WAVE');
+
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bytesPerSample * 8, true);
+
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcmData.byteLength, true);
+
+            const combined = new Uint8Array(wavHeader.byteLength + pcmData.byteLength);
+            combined.set(new Uint8Array(wavHeader), 0);
+            combined.set(new Uint8Array(pcmData.buffer), wavHeader.byteLength);
+
+            return new Blob([combined], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // Referencias a los elementos del DOM
+        const currentTimeElement = document.getElementById('current-time');
+        const currentTemperatureRightElement = document.getElementById('current-temperature-right');
+        const currentWeatherIconElement = document.getElementById('current-weather-icon');
+        const currentWeatherDescriptionElement = document.getElementById('current-weather-description');
+        const minTempElement = document.getElementById('min-temp');
+        const maxTempElement = document.getElementById('max-temp');
+        const humidityElement = document.getElementById('humidity');
+        const windSpeedElement = document.getElementById('wind-speed');
+        const gustSpeedElement = document.getElementById('gust-speed');
+        const precipitationElement = document.getElementById('precipitation');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const errorMessageElement = document.getElementById('error-message');
+
+
+        // Configuración de la API de AEMET (revertida)
+        const AEMET_API_KEY = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJlbG1pcmFkb3JkZWFsYmFjZXRlQGdtYWlsLmNvbSIsImp0aSI6IjVkOWEwODRkLWIyMGYtNDVhNy1iNGIwLTNkYjExNjAwYjhlZCIsImlzcyI6IkFFTUVUIiwiaWF0IjoxNzU0MDg1MTU3LCJ1c2VySWQiOiI1ZDlhMDg0ZC1iMjBmLTQ1YTctYjRiMC0zZGIxMTYwMGI4ZWQiLCJyb2xlIjoiIn0.-6ok6kl3fvxe_OZt8Unq_WDZ7OjXBHLJGwx-O8FUXuM';
+        const ALBACETE_STATION_ID = '8178D'; // ID de la estación de Albacete (Observatorio)
+        const ALBACETE_MUNICIPALITY_CODE = '02003'; // Código de municipio de Albacete
+
+        const AEMET_OBSERVATION_URL = `https://opendata.aemet.es/opendata/api/observacion/convencional/datos/estacion/${ALBACETE_STATION_ID}?api_key=${AEMET_API_KEY}`;
+        const AEMET_FORECAST_URL = `https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/diaria/${ALBACETE_MUNICIPALITY_CODE}?api_key=${AEMET_API_KEY}`;
+
+        /**
+         * Actualiza la hora actual en Albacete.
+         * Utiliza Intl.DateTimeFormat para manejar la zona horaria.
+         */
+        function updateTime() {
+            const now = new Date();
+            const options = {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Europe/Madrid'
+            };
+            const albaceteTime = new Intl.DateTimeFormat('es-ES', options).format(now);
+            currentTimeElement.textContent = albaceteTime;
+        }
+
+        /**
+         * Mapea la descripción del estado del cielo de AEMET a un icono emoji y una descripción amigable.
+         * @param {string} aemetDescription - Descripción del estado del cielo de la API de AEMET.
+         * @returns {{icon: string, description: string}} Objeto con el icono emoji y la descripción.
+         */
+        function getWeatherIconAndDescription(aemetDescription) {
+            let icon = '❓'; // Icono por defecto (signo de interrogación)
+            let description = aemetDescription || '';
+
+            if (aemetDescription) {
+                const lowerDescription = aemetDescription.toLowerCase();
+                const now = new Date();
+                const hours = now.getHours();
+                const isDay = hours >= 7 && hours < 21;
+
+                if (lowerDescription.includes('despejado')) {
+                    icon = isDay ? '☀️' : '🌙';
+                    description = 'Despejado';
+                } else if (lowerDescription.includes('poco nuboso') || lowerDescription.includes('intervalos nubosos')) {
+                    icon = isDay ? '⛅' : '☁️';
+                    description = 'Poco Nuboso';
+                } else if (lowerDescription.includes('nuboso') || lowerDescription.includes('cubierto') || lowerDescription.includes('muy nuboso')) {
+                    icon = '☁️';
+                    description = 'Nublado';
+                } else if (lowerDescription.includes('lluvia') || lowerDescription.includes('chubascos') || lowerDescription.includes('llovizna')) {
+                    icon = '🌧️';
+                    description = 'Lluvioso';
+                } else if (lowerDescription.includes('nieve')) {
+                    icon = '🌨️';
+                    description = 'Nevando';
+                } else if (lowerDescription.includes('niebla') || lowerDescription.includes('bruma')) {
+                    icon = '🌫️';
+                    description = 'Niebla';
+                } else if (lowerDescription.includes('tormenta')) {
+                    icon = '⛈️';
+                    description = 'Tormenta';
+                } else if (lowerDescription.includes('calima')) {
+                    icon = '🏜️';
+                    description = 'Calima';
+                }
+            }
+            return { icon, description };
+        }
+
+        /**
+         * Función genérica para realizar llamadas a la API de AEMET (dos pasos).
+         * @param {string} apiUrl - La URL inicial de la API de AEMET.
+         * @returns {Promise<Object>} - Los datos JSON de la API.
+         */
+        async function fetchAemetData(apiUrl) {
+            const maxRetries = 5;
+            let retryCount = 0;
+
+            while (retryCount < maxRetries) {
+                try {
+                    const response1 = await fetch(apiUrl);
+                    if (!response1.ok) {
+                        throw new Error(`Error HTTP en paso 1: ${response1.status} - ${response1.statusText}`);
+                    }
+                    const data1 = await response1.json();
+                    console.log(`Respuesta inicial de AEMET para ${apiUrl}:`, data1);
+
+                    if (!data1.datos || data1.estado !== 200) {
+                        throw new Error(`Respuesta inesperada en paso 1: ${JSON.stringify(data1)}`);
+                    }
+
+                    const dataUrl = data1.datos;
+                    console.log(`URL de datos real: ${dataUrl}`);
+
+                    const response2 = await fetch(dataUrl);
+                    if (!response2.ok) {
+                        throw new Error(`Error HTTP en paso 2: ${response2.status} - ${response2.statusText}`);
+                    }
+                    const finalData = await response2.json();
+                    console.log(`Datos finales de AEMET de ${dataUrl}:`, finalData);
+                    return finalData;
+                } catch (error) {
+                    console.error('Error al obtener datos de AEMET:', error);
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        const delay = Math.pow(2, retryCount) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Obtiene y muestra los datos del clima.
+         */
+        async function fetchWeatherData() {
+            loadingSpinner.style.display = 'block';
+            errorMessageElement.classList.add('hidden');
+
+            currentTemperatureRightElement.textContent = '--°C';
+            currentWeatherIconElement.textContent = '❓';
+            currentWeatherDescriptionElement.textContent = 'Cargando...';
+            minTempElement.textContent = '--°C';
+            maxTempElement.textContent = '--°C';
+            humidityElement.textContent = '--%';
+            windSpeedElement.textContent = '-- km/h';
+            gustSpeedElement.textContent = '-- km/h';
+            precipitationElement.textContent = '-- mm';
+
+            try {
+                const observationData = await fetchAemetData(AEMET_OBSERVATION_URL);
+                let currentTemp = 'N/A';
+                let humidity = 'N/A';
+                let windSpeed = 'N/A';
+                let gustSpeed = 'N/A';
+                let precipitation = 'N/A';
+                let skyStateDescriptionFromObservation = '';
+
+                if (observationData && observationData.length > 0) {
+                    const latestObservation = observationData[observationData.length - 1];
+                    currentTemp = typeof latestObservation.ta !== 'undefined' ? latestObservation.ta : 'N/A';
+                    humidity = typeof latestObservation.hr !== 'undefined' ? latestObservation.hr : 'N/A';
+                    windSpeed = typeof latestObservation.vv !== 'undefined' ? latestObservation.vv : 'N/A';
+                    gustSpeed = typeof latestObservation.vmax !== 'undefined' ? latestObservation.vmax : 'N/A';
+                    precipitation = typeof latestObservation.prec !== 'undefined' ? latestObservation.prec : 'N/A';
+                    skyStateDescriptionFromObservation = typeof latestObservation.estadoCielo !== 'undefined' && typeof latestObservation.estadoCielo.descripcion !== 'undefined' ? latestObservation.estadoCielo.descripcion : '';
+                } else {
+                    console.warn('No se recibieron datos de observación de AEMET.');
+                }
+
+                const forecastData = await fetchAemetData(AEMET_FORECAST_URL);
+                let minTemp = 'N/A';
+                let maxTemp = 'N/A';
+                let precipitationProb = 'N/A';
+                let skyStateDescriptionFromForecast = '';
+
+                if (forecastData && forecastData.length > 0 && forecastData[0].prediccion && forecastData[0].prediccion.dia && forecastData[0].prediccion.dia.length > 0) {
+                    const todayForecast = forecastData[0].prediccion.dia[0];
+
+                    minTemp = todayForecast.temperatura?.minima || 'N/A';
+                    maxTemp = todayForecast.temperatura?.maxima || 'N/A';
+                    precipitationProb = todayForecast.probPrecipitacion && todayForecast.probPrecipitacion.length > 0 ? todayForecast.probPrecipitacion[0].valor : 'N/A';
+                    skyStateDescriptionFromForecast = todayForecast.estadoCielo && todayForecast.estadoCielo.length > 0 ? todayForecast.estadoCielo[0].descripcion : '';
+
+                    if (currentTemp === 'N/A' && typeof todayForecast.temperatura?.maxima !== 'undefined' && typeof todayForecast.temperatura?.minima !== 'undefined') {
+                        currentTemp = ((todayForecast.temperatura.maxima + todayForecast.temperatura.minima) / 2).toFixed(1);
+                        console.warn('Temperatura actual obtenida del promedio de la predicción diaria.');
+                    }
+                    if (humidity === 'N/A' && todayForecast.humedadRelativa && todayForecast.humedadRelativa.length > 0) {
+                        const hrPeriod = todayForecast.humedadRelativa[0];
+                        if (typeof hrPeriod.minima !== 'undefined' && typeof hrPeriod.maxima !== 'undefined') {
+                            humidity = ((hrPeriod.minima + hrPeriod.maxima) / 2).toFixed(0);
+                            console.warn('Humedad obtenida del promedio de la predicción diaria.');
+                        }
+                    }
+                    if (windSpeed === 'N/A' && todayForecast.viento && todayForecast.viento.length > 0) {
+                        const windPeriod = todayForecast.viento[0];
+                        if (typeof windPeriod.velocidad !== 'undefined') {
+                            windSpeed = windPeriod.velocidad;
+                            console.warn('Velocidad del viento obtenida de la predicción diaria.');
+                        }
+                    }
+                    if (gustSpeed === 'N/A' && todayForecast.rachaMax && todayForecast.rachaMax.length > 0) {
+                        const rachaMaxPeriod = todayForecast.rachaMax[0];
+                        if (typeof rachaMaxPeriod.valor !== 'undefined') {
+                            gustSpeed = rachaMaxPeriod.valor;
+                            console.warn('Racha máxima obtenida de la predicción diaria.');
+                        }
+                    }
+                    if (precipitation === 'N/A' && typeof precipitationProb !== 'undefined' && precipitationProb == 0) {
+                         precipitation = 0;
+                         console.warn('Precipitación establecida a 0 mm basada en probabilidad 0% de la predicción.');
+                    } else if (precipitation === 'N/A' && typeof precipitationProb !== 'undefined' && precipitationProb > 0) {
+                        precipitation = 'Posible';
+                        console.warn('Precipitación marcada como "Posible" basada en la probabilidad de la predicción.');
+                    }
+
+                } else {
+                    console.warn('No se recibieron datos de predicción de AEMET.');
+                }
+
+                const finalSkyStateDescription = skyStateDescriptionFromObservation !== '' ? skyStateDescriptionFromObservation : skyStateDescriptionFromForecast;
+
+                if (windSpeed !== 'N/A' && typeof windSpeed === 'number') {
+                    windSpeed = (windSpeed * 3.6).toFixed(1);
+                }
+                if (gustSpeed !== 'N/A' && typeof gustSpeed === 'number') {
+                    gustSpeed = (gustSpeed * 3.6).toFixed(1);
+                }
+
+                currentTemperatureRightElement.textContent = `${currentTemp}°C`;
+                const { icon, description } = getWeatherIconAndDescription(finalSkyStateDescription);
+                currentWeatherIconElement.textContent = icon;
+                currentWeatherDescriptionElement.textContent = description;
+                minTempElement.textContent = `${minTemp}°C`;
+                maxTempElement.textContent = `${maxTemp}°C`;
+                humidityElement.textContent = `${humidity}%`;
+                precipitationElement.textContent = `${precipitation} mm`;
+
+                windSpeedElement.textContent = `${windSpeed} km/h`;
+                gustSpeedElement.textContent = `${gustSpeed} km/h`;
+
+                loadingSpinner.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error general al obtener datos del clima:', error);
+                currentTemperatureRightElement.textContent = 'N/A';
+                currentWeatherIconElement.textContent = '❓';
+                currentWeatherDescriptionElement.textContent = '';
+                minTempElement.textContent = '--°C';
+                maxTempElement.textContent = '--°C';
+                humidityElement.textContent = '--%';
+                windSpeedElement.textContent = '-- km/h';
+                gustSpeedElement.textContent = '-- km/h';
+                precipitationElement.textContent = '-- mm';
+                errorMessageElement.classList.remove('hidden');
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Llamadas iniciales al cargar la página
+        updateTime();
+        fetchWeatherData();
+
+        // Actualizar la hora cada segundo
+        setInterval(updateTime, 1000);
+
+        // Actualizar los datos del clima cada 10 minutos (600000 ms)
+        setInterval(fetchWeatherData, 600000);
+    </script>
+</body>
+</html>
+        <div class="lg:w-3/4 p-8 flex flex-col items-center justify-center text-center">
+            <div class="flex-grow flex items-center justify-center">
                 <p class="text-2xl text-gray-500">Predicción del clima por horas en Albacete</p>
             </div>
 
