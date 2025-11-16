@@ -3,20 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reloj Croma (Centrado)</title>
+    <title>Reloj Croma (Alta Calidad + Fecha)</title>
     <style>
-        /* 1. El fondo croma verde y centrado */
+        /* 1. El fondo croma verde */
         body {
             background-color: #00FF00;
             height: 100vh;
             margin: 0;
-            
-            /* Centra el contenedor en la pantalla */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            /* Fuente limpia para el reloj */
+             /* Usamos la fuente del sistema para la hora y la fecha */
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
                          Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", 
                          "Helvetica Neue", sans-serif;
@@ -25,33 +19,75 @@
         /* 2. El cuadro blanco 50% transparente */
         .clock-container {
             background-color: rgba(255, 255, 255, 0.5);
-            padding: 30px 40px;
-            border-radius: 15px;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin: 20px; 
+            display: inline-block;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            
-            /* Centra el texto (hora y fecha) dentro del cuadro */
-            text-align: center;
         }
 
         /* 3. El texto del reloj (hh:mm:ss) */
         #clock {
-            font-size: 4.5rem;
+            font-size: 3.2rem;
             color: #000000; 
-            
-            /* Fuente "fina" (grosor normal) */
-            font-weight: 400; 
+            font-weight: 900; /* Fuente "gordita" */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
         }
         
-        /* 4. Estilo para la fecha */
+        /* 4. NUEVO: Estilo para la fecha */
         #date {
-            font-size: 1.5rem;
+            font-size: 1.2rem; /* Un poco más pequeña que la hora */
             color: #000;
-            font-weight: 400; /* Mismo grosor "fino" */
-            margin-top: 5px; 
+            font-weight: 700; /* También gruesa, pero menos que la hora */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Sombra sutil */
+            margin-top: 5px; /* Pequeño espacio debajo del reloj */
         }
+
     </style>
 </head>
 <body>
 
     <div class="clock-container">
-        <div id="clock
+        <div id="clock">Cargando...</div>
+        <div id="date"></div>
+    </div>
+
+    <script>
+        // NUEVO: La función ahora actualiza la hora Y la fecha
+        function updateClockAndDate() {
+            const now = new Date();
+            
+            // --- Configuración de la HORA ---
+            const timeOptions = {
+                timeZone: 'Europe/Madrid', 
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false 
+            };
+            const timeString = now.toLocaleTimeString('en-GB', timeOptions);
+            
+            // --- NUEVO: Configuración de la FECHA ---
+            const dateOptions = {
+                timeZone: 'Europe/Madrid', // Misma zona horaria
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            };
+            // Usamos 'es-ES' para el formato DD/MM/AAAA
+            const dateString = now.toLocaleDateString('es-ES', dateOptions);
+
+            // --- Actualizar el HTML ---
+            document.getElementById('clock').textContent = timeString;
+            document.getElementById('date').textContent = dateString;
+        }
+
+        // Llamamos a la función cada segundo
+        setInterval(updateClockAndDate, 1000);
+        
+        // La llamamos una vez al cargar la página
+        updateClockAndDate();
+    </script>
+
+</body>
+</html>
