@@ -3,38 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reloj Croma</title>
+    <title>Reloj Croma (Esquina)</title>
     <style>
         /* 1. El fondo croma verde */
         body {
-            /* Este es el color verde croma estándar */
             background-color: #00FF00;
-            
-            /* Usamos Flexbox para centrar el reloj perfectamente */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh; /* Alto total de la ventana */
-            margin: 0;
-            
-            /* Estilos de la fuente para el reloj */
+            height: 100vh; /* Ocupa toda la altura */
+            margin: 0;     /* Sin márgenes por defecto */
             font-family: 'Arial', sans-serif;
         }
 
         /* 2. El cuadro blanco 50% transparente */
         .clock-container {
-            /* Usamos RGBA para el color: R(255) G(255) B(255) es blanco. */
-            /* El A(0.5) es el 'alfa' o transparencia al 50%. */
             background-color: rgba(255, 255, 255, 0.5);
+            padding: 20px 30px;
+            border-radius: 10px;
             
-            padding: 30px 40px;
-            border-radius: 15px; /* Bordes redondeados */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Sombra suave */
+            /* NUEVO: Margen para separarlo de la esquina superior izquierda */
+            margin: 20px; 
+            
+            /* NUEVO: Para que el cuadro se ajuste al contenido y no ocupe todo el ancho */
+            display: inline-block; 
         }
 
         /* 3. El texto del reloj (hh:mm:ss) */
         #clock {
-            font-size: 5rem; /* Tamaño grande */
+            font-size: 3rem; /* Tamaño ajustado para una esquina */
+            
+            /* NUEVO: Fuente en negrita y color negro */
             font-weight: bold;
-            color: #333; /* Color de texto oscuro para buen contraste */
-            /* Fuente monoespaci
+            color: #000000; 
+            
+            font-family: 'Courier New', Courier, monospace; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-container">
+        <div id="clock">00:00:00</div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            document.getElementById('clock').textContent = timeString;
+        }
