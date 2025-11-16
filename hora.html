@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reloj Croma (Esquina)</title>
+    <title>Reloj Croma (Hora de España)</title>
     <style>
         /* 1. El fondo croma verde */
         body {
             background-color: #00FF00;
-            height: 100vh; /* Ocupa toda la altura */
-            margin: 0;     /* Sin márgenes por defecto */
+            height: 100vh;
+            margin: 0;
             font-family: 'Arial', sans-serif;
         }
 
@@ -18,22 +18,15 @@
             background-color: rgba(255, 255, 255, 0.5);
             padding: 20px 30px;
             border-radius: 10px;
-            
-            /* NUEVO: Margen para separarlo de la esquina superior izquierda */
             margin: 20px; 
-            
-            /* NUEVO: Para que el cuadro se ajuste al contenido y no ocupe todo el ancho */
             display: inline-block; 
         }
 
         /* 3. El texto del reloj (hh:mm:ss) */
         #clock {
-            font-size: 3rem; /* Tamaño ajustado para una esquina */
-            
-            /* NUEVO: Fuente en negrita y color negro */
+            font-size: 3rem;
             font-weight: bold;
             color: #000000; 
-            
             font-family: 'Courier New', Courier, monospace; 
         }
     </style>
@@ -41,15 +34,43 @@
 <body>
 
     <div class="clock-container">
-        <div id="clock">00:00:00</div>
+        <div id="clock">Cargando...</div>
     </div>
 
     <script>
         function updateClock() {
+            // 1. Obtener la hora actual (sigue siendo la base)
             const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            const timeString = `${hours}:${minutes}:${seconds}`;
+
+            // 2. Definir las opciones para la hora de España
+            const options = {
+                // Esta es la clave: le decimos que use la zona de Madrid
+                timeZone: 'Europe/Madrid', 
+                
+                // Pedimos que siempre sean 2 dígitos
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                
+                // Usamos formato de 24 horas (ej. 14:00 en vez de 2 PM)
+                hour12: false 
+            };
+
+            // 3. Formatear la hora
+            // Usamos 'en-GB' (Inglés de R. Unido) porque nos da el formato
+            // que queremos (HH:MM:SS) de forma fiable.
+            const timeString = now.toLocaleTimeString('en-GB', options);
+
+            // 4. Actualizar el contenido del HTML
             document.getElementById('clock').textContent = timeString;
         }
+
+        // 5. Llamar a la función cada segundo
+        setInterval(updateClock, 1000);
+
+        // 6. Llamar una vez al cargar
+        updateClock();
+    </script>
+
+</body>
+</html>
