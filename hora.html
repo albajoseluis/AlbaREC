@@ -3,38 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reloj Croma (Alta Calidad)</title>
+    <title>Reloj Croma (Centrado)</title>
     <style>
-        /* 1. El fondo croma verde */
+        /* 1. El fondo croma verde y centrado */
         body {
             background-color: #00FF00;
             height: 100vh;
             margin: 0;
+            
+            /* NUEVO: Volvemos a centrar el contenedor */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            /* Usamos la fuente de sistema para un look limpio */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
+                         Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", 
+                         "Helvetica Neue", sans-serif;
         }
 
         /* 2. El cuadro blanco 50% transparente */
         .clock-container {
             background-color: rgba(255, 255, 255, 0.5);
-            padding: 20px 30px;
-            border-radius: 10px;
-            margin: 20px; 
-            display: inline-block;
-            /* NUEVO: Sombra suave al contenedor */
+            padding: 30px 40px;
+            border-radius: 15px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            
+            /* NUEVO: Centra el texto (hora y fecha) dentro del cuadro */
+            text-align: center;
         }
 
         /* 3. El texto del reloj (hh:mm:ss) */
         #clock {
-            /* Hacemos la fuente un poco más grande */
-            font-size: 3.2rem;
+            font-size: 4.5rem; /* Tamaño grande para el centro */
             color: #000000; 
+            
+            /* NUEVO: Fuente más "fina" (grosor normal) */
+            font-weight: 400; 
+        }
+        
+        /* 4. NUEVO: Estilo para la fecha */
+        #date {
+            font-size: 1.5rem;
+            color: #000;
+            font-weight: 400; /* Mismo grosor "fino" */
+            margin-top: 5px; /* Pequeño espacio bajo el reloj */
+        }
+    </style>
+</head>
+<body>
 
-            /* * NUEVO: FUENTE MÁS GORDITA Y DE CALIDAD
-             * 1. Usamos la fuente del sistema (la más limpia de tu PC/Móvil).
-             * 2. Ponemos el grosor en 900 (el más "gordito" o "Black").
-             */
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
-                         Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", 
+    <div class="clock-container">
+        <div id="clock">Cargando...</div>
+        <div id="date"></div>
+    </div>
+
+    <script>
+        function updateClockAndDate() {
+            // Obtenemos la fecha/hora actual
+            const now = new Date();
+
+            // --- 1. CONFIGURAR LA HORA ---
+            const timeOptions = {
+                timeZone: 'Europe/Madrid', 
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false 
+            };
+            // Usamos 'en-GB' para asegurar el formato HH:MM:SS
+            const timeString = now.toLocaleTimeString('en-GB', timeOptions);
+            
+            
+            // --- 2. CONFIGURAR LA FECHA ---
+            const dateOptions = {
+                timeZone: 'Europe/Madrid', // Importante: misma zona
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            };
+            // Usamos 'es-ES' para asegurar el formato DD/MM/AAAA
+            const dateString = now.toLocaleDateString('es-ES', dateOptions);
+
+            
+            // --- 3. ACTUALIZAR EL HTML ---
+            document.getElementById('clock').textContent = timeString;
+            document.getElementById('date').textContent = dateString;
+        }
+
+        // Llamar a la función cada segundo (actualiza hora y fecha)
+        setInterval(updateClockAndDate, 1000);
+
+        // Llamar una vez al cargar
+        updateClockAndDate();
+    </script>
+
+</body>
+</html>                         Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", 
                          "Helvetica Neue", sans-serif;
             font-weight: 900;
 
