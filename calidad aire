@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aire Albacete — Calidad del Aire en Tiempo Real</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:        #0b0f14;
+      --surface:   #111720;
+      --border:    #1e2a35;
+      --accent:    #00d4aa;
+      --accent2:   #0099ff;
+      --warn:      #f6b900;
+      --danger:    #ff596f;
+      --text:      #e2eaf2;
+      --muted:     #5a7080;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+
+      /* ICA colores */
+      --ica-buena:       #00d4aa;
+      --ica-rbuena:      #01cd98;
+      --ica-regular:     #f6b900;
+      --ica-desfav:      #f7751c;
+      --ica-mdesfav:     #f25a6c;
+      --ica-edesfav:     #7c5ce4;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 1.4rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+    }
+
+    .logo h1 {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+    }
+
+    .logo span {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: .7rem;
+      color: var(--muted);
+      font-weight: 400;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #last-update {
+      font-size: .7rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    .status-dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+    .status-dot.error { background: var(--danger); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      grid-template-rows: auto 1fr;
+      height: calc(100vh - 73px);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      grid-row: 1 / 3;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── ICA HERO ── */
+    .ica-hero {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ica-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 80% 50%, var(--ica-color, var(--accent))18, transparent 70%);
+      opacity: .12;
+      pointer-events: none;
+    }
+
+    .station-selector {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .station-name {
+      font-family: var(--font-head);
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .station-id {
+      font-size: .65rem;
+      color: var(--muted);
+      background: var(--border);
+      padding: .2rem .5rem;
+      border-radius: 4px;
+    }
+
+    .ica-display {
+      display: flex;
+      align-items: flex-end;
+      gap: 1rem;
+      margin-bottom: .75rem;
+    }
+
+    .ica-number {
+      font-family: var(--font-head);
+      font-size: 4.5rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--ica-color, var(--accent));
+      transition: color .5s;
+    }
+
+    .ica-info {
+      padding-bottom: .4rem;
+    }
+
+    .ica-label {
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+    }
+
+    .ica-nivel {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--ica-color, var(--accent));
+      transition: color .5s;
+    }
+
+    .ica-bar-wrap {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ica-bar {
+      height: 100%;
+      background: var(--ica-color, var(--accent));
+      border-radius: 2px;
+      transition: width .8s ease, background .5s;
+    }
+
+    /* ── SECCIONES DATOS ── */
+    .section {
+      padding: 1.2rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: .6rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .6rem; }
+
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .7rem .8rem;
+      transition: border-color .3s;
+    }
+
+    .metric:hover { border-color: var(--accent); }
+
+    .metric-label {
+      font-size: .6rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: .3rem;
+    }
+
+    .metric-value {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .metric-unit {
+      font-family: var(--font-mono);
+      font-size: .6rem;
+      color: var(--muted);
+      margin-left: .2rem;
+    }
+
+    .metric.highlight .metric-value { color: var(--accent2); }
+    .metric.warn .metric-value { color: var(--warn); }
+
+    /* ── SKELETON ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── MAPA ── */
+    #map {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Custom Leaflet marker */
+    .custom-marker {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: .85rem;
+      color: #000;
+      border: 3px solid rgba(255,255,255,.25);
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
+      cursor: pointer;
+      transition: transform .2s;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 10px !important;
+      color: var(--text) !important;
+      font-family: var(--font-mono) !important;
+      font-size: .75rem !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5) !important;
+    }
+
+    .leaflet-popup-tip { background: var(--surface) !important; }
+
+    .popup-title {
+      font-family: var(--font-head);
+      font-size: .9rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+      color: var(--accent);
+    }
+
+    .popup-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .2rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .popup-row:last-child { border-bottom: none; }
+
+    .popup-key { color: var(--muted); }
+    .popup-val { font-weight: 500; }
+
+    /* ── LOADING OVERLAY ── */
+    #loading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      z-index: 9999;
+      transition: opacity .5s;
+    }
+
+    #loading.hidden { opacity: 0; pointer-events: none; }
+
+    .loader-icon {
+      font-size: 2.5rem;
+      animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      color: var(--muted);
+    }
+
+    /* ── ERROR BANNER ── */
+    #error-banner {
+      display: none;
+      background: rgba(255,89,111,.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: .8rem 1.5rem;
+      font-size: .75rem;
+      text-align: center;
+    }
+
+    /* ── REFRESH BTN ── */
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: .4rem .8rem;
+      font-family: var(--font-mono);
+      font-size: .7rem;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .refresh-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 320px auto;
+        height: auto;
+      }
+      .sidebar { grid-row: 3; border-right: none; border-top: 1px solid var(--border); }
+      #map { grid-column: 1; grid-row: 2; height: 320px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="loader-icon">🌬️</div>
+  <div class="loader-text">Cargando datos de Albacete…</div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌿</div>
+    <h1>Aire Albacete
+      <span>Calidad del Aire · Tiempo Real</span>
+    </h1>
+  </div>
+  <div class="header-right">
+    <div id="last-update">—</div>
+    <div class="status-dot" id="status-dot"></div>
+    <button class="refresh-btn" onclick="loadData()">↻ Actualizar</button>
+  </div>
+</header>
+
+<!-- ERROR -->
+<div id="error-banner">⚠ No se pudo conectar con la API. Mostrando datos de ejemplo.</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- ICA HERO -->
+    <div class="ica-hero" id="ica-hero">
+      <div class="station-selector">
+        <div class="station-name" id="station-name">Cargando…</div>
+        <div class="station-id" id="station-id-badge">ID —</div>
+      </div>
+      <div class="ica-display">
+        <div class="ica-number" id="ica-number">—</div>
+        <div class="ica-info">
+          <div class="ica-label">Índice Calidad Aire</div>
+          <div class="ica-nivel" id="ica-nivel">—</div>
+        </div>
+      </div>
+      <div class="ica-bar-wrap">
+        <div class="ica-bar" id="ica-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- PARTÍCULAS -->
+    <div class="section">
+      <div class="section-title">☁ Partículas</div>
+      <div class="grid-3">
+        <div class="metric">
+          <div class="metric-label">PM1</div>
+          <div class="metric-value" id="pm1">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">PM2.5</div>
+          <div class="metric-value" id="pm25">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">PM10</div>
+          <div class="metric-value" id="pm10">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GASES -->
+    <div class="section">
+      <div class="section-title">⚗ Gases</div>
+      <div class="grid-2">
+        <div class="metric">
+          <div class="metric-label">NO₂</div>
+          <div class="metric-value" id="no2">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">NO</div>
+          <div class="metric-value" id="no">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">O₃</div>
+          <div class="metric-value" id="o3">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">SO₂</div>
+          <div class="metric-value" id="so2">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">CO</div>
+          <div class="metric-value" id="co">—<span class="metric-unit">mg/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">NOx</div>
+          <div class="metric-value" id="nox">—<span class="metric-unit">µg/m³</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METEOROLOGÍA -->
+    <div class="section">
+      <div class="section-title">🌡 Meteorología</div>
+      <div class="grid-2">
+        <div class="metric highlight">
+          <div class="metric-label">Temperatura</div>
+          <div class="metric-value" id="temp">—<span class="metric-unit">°C</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Humedad</div>
+          <div class="metric-value" id="hum">—<span class="metric-unit">%</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Presión</div>
+          <div class="metric-value" id="pres">—<span class="metric-unit">hPa</span></div>
+        </div>
+        <div class="metric warn">
+          <div class="metric-label">Ruido</div>
+          <div class="metric-value" id="ruido">—<span class="metric-unit">dB</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Viento</div>
+          <div class="metric-value" id="viento">—<span class="metric-unit">km/h</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Dir. Viento</div>
+          <div class="metric-value" id="viento-dir">—<span class="metric-unit">°</span></div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAPA -->
+  <div id="map"></div>
+
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const API_BASE = 'https://devel.airadvanced.net/api';
+const TOKEN    = '029dd87e6549adce194bbf656003c4fc5bfe4272';
+const HEADERS  = {
+  'accept': '*/*; version=v2',
+  'authorization': `Token ${TOKEN}`,
+  'origin': 'https://troposfera.es',
+};
+
+// Estaciones conocidas de Albacete con coords aproximadas
+// Actualiza los IDs y coords cuando los obtengas de /netstations/
+const STATIONS = [
+  { id: 90000006, name: 'Albacete Centro',    lat: 38.9942, lon: -1.8564 },
+  { id: 90000007, name: 'Estación Norte',     lat: 39.0010, lon: -1.8600 },
+  { id: 90000008, name: 'Estación Sur',       lat: 38.9870, lon: -1.8530 },
+  { id: 90000009, name: 'Ctra. Madrid',       lat: 38.9990, lon: -1.8480 },
+  { id: 90000010, name: 'Paseo de la Cuba',   lat: 38.9925, lon: -1.8610 },
+];
+
+// ICA niveles
+const ICA_NIVELES = [
+  { max: 25,  label: 'Buena',            color: '#00d4aa' },
+  { max: 50,  label: 'Razonablemente buena', color: '#01cd98' },
+  { max: 75,  label: 'Regular',          color: '#f6b900' },
+  { max: 100, label: 'Desfavorable',     color: '#f7751c' },
+  { max: 125, label: 'Muy desfavorable', color: '#f25a6c' },
+  { max: 999, label: 'Extremadamente desfavorable', color: '#7c5ce4' },
+];
+
+function getIcaInfo(val) {
+  if (val == null) return { label: 'Sin datos', color: '#5a7080' };
+  return ICA_NIVELES.find(n => val <= n.max) || ICA_NIVELES.at(-1);
+}
+
+// ── MAPA ────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [38.9942, -1.8564],
+  zoom: 13,
+  zoomControl: true,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap © CARTO',
+  maxZoom: 19,
+}).addTo(map);
+
+const markers = {};
+
+function createMarkerIcon(ica, color) {
+  return L.divIcon({
+    className: '',
+    html: `<div class="custom-marker" style="background:${color}">${ica != null ? Math.round(ica) : '?'}</div>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+    popupAnchor: [0, -25],
+  });
+}
+
+// Añadir marcadores iniciales (sin datos aún)
+STATIONS.forEach(st => {
+  const icon = createMarkerIcon(null, '#1e2a35');
+  const marker = L.marker([st.lat, st.lon], { icon })
+    .addTo(map)
+    .bindPopup(`<div class="popup-title">${st.name}</div><div style="color:var(--muted)">Cargando…</div>`);
+  markers[st.id] = { marker, station: st };
+});
+
+// ── API ──────────────────────────────────────────────────
+async function fetchStation(id) {
+  const res = await fetch(`${API_BASE}/citizens-layer/aq-station/${id}/`, { headers: HEADERS });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── DATOS DE EJEMPLO (cuando la API no responde) ─────────
+function mockData(stationId) {
+  const seed = stationId % 10;
+  return {
+    _mock: true,
+    station_name: STATIONS.find(s => s.id === stationId)?.name || 'Estación',
+    ica: 30 + seed * 4,
+    sensors: {
+      no: 5 + seed,  no2: 18 + seed * 2,  nox: 23 + seed * 2,
+      co: 0.3 + seed * 0.05,  o3: 45 + seed * 3,  so2: 4 + seed,
+      pm1: 6 + seed, pm25: 9 + seed, pm10: 14 + seed * 1.5,
+    },
+    meteo: {
+      temperature: 18 + seed * 0.5, humidity: 40 + seed * 2,
+      pressure: 958 + seed, noise: 48 + seed * 0.3,
+      wind_speed: 10 + seed, wind_dir: seed * 36,
+    }
+  };
+}
+
+// ── PARSEO ───────────────────────────────────────────────
+function extract(obj, ...keys) {
+  for (const key of keys) {
+    const k = key.toLowerCase();
+    const found = Object.keys(obj || {}).find(x => x.toLowerCase() === k);
+    if (found !== undefined && obj[found] != null) return obj[found];
+  }
+  return null;
+}
+
+function parseData(raw, stationId) {
+  const sensors = raw.sensors || raw.data || raw;
+  const meteo   = raw.meteo || raw.meteorology || sensors;
+
+  const ica = extract(raw, 'ica') ?? extract(sensors, 'ica');
+
+  return {
+    stationName: raw.station_name || raw.name || STATIONS.find(s => s.id === stationId)?.name || `Estación ${stationId}`,
+    ica,
+    no:    extract(sensors, 'no', 'NO'),
+    no2:   extract(sensors, 'no2', 'NO2'),
+    nox:   extract(sensors, 'nox', 'NOx'),
+    co:    extract(sensors, 'co', 'CO'),
+    o3:    extract(sensors, 'o3', 'O3'),
+    so2:   extract(sensors, 'so2', 'SO2'),
+    pm1:   extract(sensors, 'pm1', 'PM1'),
+    pm25:  extract(sensors, 'pm25', 'PM2_5', 'PM2.5'),
+    pm10:  extract(sensors, 'pm10', 'PM10'),
+    temp:  extract(meteo, 'temperature', 'temp', 'temperatura'),
+    hum:   extract(meteo, 'humidity', 'humedad'),
+    pres:  extract(meteo, 'pressure', 'presion'),
+    ruido: extract(meteo, 'noise', 'ruido') || extract(raw, 'noise'),
+    windSpeed: extract(meteo, 'wind_speed', 'velocidad'),
+    windDir:   extract(meteo, 'wind_dir', 'direccion'),
+    isMock: !!raw._mock,
+  };
+}
+
+// ── RENDERIZADO ──────────────────────────────────────────
+let activeStationId = STATIONS[0].id;
+let allData = {};
+
+function fmt(val, dec = 1) {
+  return val != null ? Number(val).toFixed(dec) : '—';
+}
+
+function renderSidebar(data, stationId) {
+  const icaInfo = getIcaInfo(data.ica);
+
+  // ICA hero
+  document.getElementById('station-name').textContent = data.stationName;
+  document.getElementById('station-id-badge').textContent = `ID ${stationId}`;
+  document.getElementById('ica-number').textContent = data.ica != null ? Math.round(data.ica) : '—';
+  document.getElementById('ica-nivel').textContent = icaInfo.label;
+
+  const barW = data.ica != null ? Math.min(100, (data.ica / 150) * 100) : 0;
+  document.getElementById('ica-bar').style.width = barW + '%';
+  document.getElementById('ica-bar').style.background = icaInfo.color;
+  document.getElementById('ica-number').style.color = icaInfo.color;
+  document.getElementById('ica-nivel').style.color = icaInfo.color;
+  document.documentElement.style.setProperty('--ica-color', icaInfo.color);
+
+  // Partículas
+  document.getElementById('pm1').innerHTML  = fmt(data.pm1)  + '<span class="metric-unit">µg/m³</span>';
+  document.getElementById('pm25').innerHTML = fmt(data.pm25) + '<span class="metric-unit">µg/m³</span>';
+  document.getElementById('pm10').innerHTML = fmt(data.pm10) + '<span class="metric-unit">µg/m³</span>';
+
+  // Gases
+  document.getElementById('no2').innerHTML  = fmt(data.no2)  + '<span class="metric-unit">µg/m³</span>';
+  document.getElementById('no').innerHTML   = fmt(data.no)   + '<span class="metric-unit">µg/m³</span>';
+  document.getElementById('o3').innerHTML   = fmt(data.o3)   + '<span class="metric-unit">µg/m³</span>';
+  document.getElementById('so2').innerHTML  = fmt(data.so2)  + '<span class="metric-unit">µg/m³</span>';
+  document.getElementById('co').innerHTML   = fmt(data.co, 2)+ '<span class="metric-unit">mg/m³</span>';
+  document.getElementById('nox').innerHTML  = fmt(data.nox)  + '<span class="metric-unit">µg/m³</span>';
+
+  // Meteo
+  document.getElementById('temp').innerHTML     = fmt(data.temp)   + '<span class="metric-unit">°C</span>';
+  document.getElementById('hum').innerHTML      = fmt(data.hum, 0) + '<span class="metric-unit">%</span>';
+  document.getElementById('pres').innerHTML     = fmt(data.pres, 0)+ '<span class="metric-unit">hPa</span>';
+  document.getElementById('ruido').innerHTML    = fmt(data.ruido, 1)+'<span class="metric-unit">dB</span>';
+  document.getElementById('viento').innerHTML   = fmt(data.windSpeed,0)+'<span class="metric-unit">km/h</span>';
+  document.getElementById('viento-dir').innerHTML = fmt(data.windDir,0)+'<span class="metric-unit">°</span>';
+}
+
+function updateMarker(stationId, data) {
+  const m = markers[stationId];
+  if (!m) return;
+  const icaInfo = getIcaInfo(data.ica);
+  m.marker.setIcon(createMarkerIcon(data.ica, icaInfo.color));
+  m.marker.setPopupContent(`
+    <div class="popup-title">${data.stationName}</div>
+    <div class="popup-row"><span class="popup-key">ICA</span><span class="popup-val" style="color:${icaInfo.color}">${data.ica != null ? Math.round(data.ica) : '—'} — ${icaInfo.label}</span></div>
+    <div class="popup-row"><span class="popup-key">PM2.5</span><span class="popup-val">${fmt(data.pm25)} µg/m³</span></div>
+    <div class="popup-row"><span class="popup-key">NO₂</span><span class="popup-val">${fmt(data.no2)} µg/m³</span></div>
+    <div class="popup-row"><span class="popup-key">Temperatura</span><span class="popup-val">${fmt(data.temp)} °C</span></div>
+    <div class="popup-row"><span class="popup-key">Humedad</span><span class="popup-val">${fmt(data.hum, 0)} %</span></div>
+  `);
+  m.marker.on('click', () => {
+    activeStationId = stationId;
+    renderSidebar(allData[stationId], stationId);
+  });
+}
+
+// ── CARGA PRINCIPAL ──────────────────────────────────────
+let useMock = false;
+
+async function loadData() {
+  document.getElementById('status-dot').className = 'status-dot';
+  const dot = document.getElementById('status-dot');
+
+  const results = await Promise.allSettled(
+    STATIONS.map(async st => {
+      let raw;
+      try {
+        raw = await fetchStation(st.id);
+      } catch (e) {
+        raw = mockData(st.id);
+        useMock = true;
+      }
+      const data = parseData(raw, st.id);
+      allData[st.id] = data;
+      updateMarker(st.id, data);
+      return data;
+    })
+  );
+
+  // Renderiza la estación activa
+  if (allData[activeStationId]) {
+    renderSidebar(allData[activeStationId], activeStationId);
+  }
+
+  // Status
+  const ts = new Date().toLocaleTimeString('es-ES');
+  document.getElementById('last-update').innerHTML = `Actualizado<br>${ts}`;
+  dot.className = useMock ? 'status-dot error' : 'status-dot live';
+
+  if (useMock) {
+    document.getElementById('error-banner').style.display = 'block';
+  }
+
+  // Ocultar loading
+  const loading = document.getElementById('loading');
+  loading.classList.add('hidden');
+  setTimeout(() => loading.remove(), 600);
+}
+
+// ── AUTO-REFRESH ─────────────────────────────────────────
+loadData();
+setInterval(loadData, 10 * 60 * 1000); // cada 10 min
+</script>
+</body>
+</html>
